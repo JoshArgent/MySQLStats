@@ -6,6 +6,10 @@ public class Main extends JavaPlugin {
 	
 	public void onEnable()
 	{ 
+		if(!this.getConfig().contains("enabled"))
+		{
+			this.saveDefaultConfig();
+		}
 		
 	}
 	

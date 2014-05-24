@@ -1,0 +1,7 @@
+enabled: false
+database:
+    host: "localhost"
+    database: "database_name"
+    table: "Player_Stats"
+    username: "username"
+    password: "password"

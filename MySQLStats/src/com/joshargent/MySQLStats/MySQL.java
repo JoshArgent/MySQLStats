@@ -7,43 +7,68 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public class MySQL {
 	 
-    public Connection conn = null;
-    public Statement stmt = null;
-    public boolean dbConnSuccess = false;
+    private Connection conn = null;
+    private Statement stmt = null;
    
-    public String strUri = "";
-    public String strUser = "";
-    public String strPassword = "";
-    public String strTbl = "homes";
+    private String strUri = "";
+    private String strUser = "";
+    private String strPassword = "";
+    private JavaPlugin plugin;
+    public boolean connected = false;
+    public boolean failed = false;
     
-    MySQL(String host, String db, String username, String password, String table)
+    MySQL(JavaPlugin plugin, String host, String db, String username, String password)
     {
     	strUri = "jdbc:mysql://" + host + "/" + db;
     	strUser = username;
     	strPassword = password;
-    	strTbl = table;
+    	this.plugin = plugin;
+    	dbConnect();    	
     }
    
     public void dbConnect()
     {
-        try {
-        	try {
-				Class.forName("com.mysql.jdbc.Driver");
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			} 
-            conn = DriverManager.getConnection(strUri, strUser, strPassword);
-            stmt = conn.createStatement();
-            Bukkit.getLogger().info("Successfully connected to MySQL database!");
-            dbConnSuccess = true;
-        } catch (SQLException e) {
-        	e.printStackTrace();
-            return;
-        }
+    	Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+			@Override
+			public void run()
+			{
+				try {
+		        	try {
+						Class.forName("com.mysql.jdbc.Driver");
+					} catch (ClassNotFoundException e) {
+						e.printStackTrace();
+					} 
+		            conn = DriverManager.getConnection(strUri, strUser, strPassword);
+		            stmt = conn.createStatement();
+		            Bukkit.getLogger().info("Successfully connected to MySQL database!");
+		            connected = true;
+		        } catch (SQLException e) {
+		        	e.printStackTrace();
+		        	failed = true;
+		            return;
+		        }
+			}
+    	});
     }
+    
+    public boolean waitForConnection()
+    {
+    	while(!failed && !connected)
+		{
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		if(failed) return false;
+		return true;
+    }
+    
     public ResultSet executeQuery(String s)
     {
     	ResultSet results = null;
@@ -55,13 +80,24 @@ public class MySQL {
         return results;
     }
     
-    public void executeUpdate(String s)
+    public Connection getConnection()
     {
-        try {
-        	stmt.executeUpdate(s);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    	return conn;
+    }
+    
+    public void executeUpdateAsync(final String s)
+    {
+    	Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+			@Override
+			public void run()
+			{
+				try {
+		        	stmt.executeUpdate(s);
+		        } catch (SQLException e) {
+		            e.printStackTrace();
+		        }
+			}
+    	});
     }
     
     public void checkConnection()
@@ -75,7 +111,5 @@ public class MySQL {
 			e.printStackTrace();
 		}
     }
-    
-    
  
 }
